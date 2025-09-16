@@ -10,9 +10,10 @@ import { useAppState } from './hooks/useAppState';
 export default function App() {
   const {
     activeTab,
-    assessmentData,
+    assessments,
     showResults,
     handleCalculateResults,
+    handleBatchCalculateResults,
     handleNewAssessment,
     handleTabChange,
   } = useAppState();
@@ -33,8 +34,9 @@ export default function App() {
           />
           
           <AppContent 
-            assessmentData={assessmentData}
+            assessments={assessments}
             onCalculateResults={handleCalculateResults}
+            onBatchCalculateResults={handleBatchCalculateResults}
           />
         </Tabs>
       </main>

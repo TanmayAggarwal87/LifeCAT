@@ -7,8 +7,9 @@ import { Dashboard } from '../Dashboard';
 import { DataUpload } from '../DataUpload';
 
 export const AppContent = ({
-  assessmentData,
-  onCalculateResults
+  assessments, // Changed from assessmentData
+  onCalculateResults,
+  onBatchCalculateResults // New prop
 }) => {
   return (
     <div className="mt-8">
@@ -17,14 +18,14 @@ export const AppContent = ({
       </TabsContent>
 
       <TabsContent value="results" className="flex justify-center">
-        {assessmentData && (
-          <ResultsVisualization inputData={assessmentData} />
+        {assessments && assessments.length > 0 && (
+          <ResultsVisualization inputData={assessments[0]} batchData={assessments} />
         )}
       </TabsContent>
 
       <TabsContent value="recommendations" className="flex justify-center">
-        {assessmentData && (
-          <Recommendations inputData={assessmentData} />
+        {assessments && assessments.length > 0 && (
+          <Recommendations inputData={assessments[0]} />
         )}
       </TabsContent>
 
@@ -33,7 +34,7 @@ export const AppContent = ({
       </TabsContent>
 
       <TabsContent value="upload" className="flex justify-center">
-        <DataUpload />
+        <DataUpload onBatchCalculateResults={onBatchCalculateResults} />
       </TabsContent>
     </div>
   );

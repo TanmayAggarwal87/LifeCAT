@@ -6,11 +6,15 @@ import { Label } from './ui/label';
 import { Alert, AlertDescription } from './ui/alert';
 import { Progress } from './ui/progress';
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { buildLcaJson } from '../utils/lca';
 
-export function DataUpload() {
+export function DataUpload({ onBatchCalculateResults }) {
   const [uploadStatus, setUploadStatus] = React.useState('idle');
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [fileName, setFileName] = React.useState('');
+  const [parsedData, setParsedData] = React.useState([]);
+  const [lcaResults, setLcaResults] = React.useState([]);
 
   const handleFileUpload = (event) => {
     const file = event.target.files?.[0];
@@ -19,23 +23,93 @@ export function DataUpload() {
     setFileName(file.name);
     setUploadStatus('uploading');
     setUploadProgress(0);
+    setLcaResults([]); // Clear previous results
 
-    // Simulate file upload with progress
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const data = e.target.result;
+      const workbook = XLSX.read(data, { type: 'binary' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const json = XLSX.utils.sheet_to_json(worksheet);
+
+      if (json.length === 0) {
+        setUploadStatus('empty_file');
+        setFileName(file.name); // Still show filename even if empty
+        return;
+      }
+
+      setParsedData(json);
+
+      // Simulate file upload with progress
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 10;
+        setUploadProgress(progress);
+        if (progress >= 100) {
           clearInterval(interval);
-          setUploadStatus('success');
-          return 100;
+          setUploadStatus('processing');
+          // Process LCA calculations after upload simulation
+          processLcaCalculations(json);
         }
-        return prev + 10;
-      });
-    }, 200);
+      }, 200);
+    };
+
+    reader.onerror = () => {
+      setUploadStatus('error');
+    };
+
+    reader.readAsBinaryString(file);
   };
 
-  const downloadTemplate = () => {
-    // In a real app, this would download an actual template file
-    console.log('Downloading template...');
+  const processLcaCalculations = (data) => {
+    const results = data.map((row) => {
+      // Map row data to the input format expected by buildLcaJson
+      const input = {
+        metal: row['Metal Type']?.toLowerCase() || 'steel',
+        productType: row['Product Type'] || 'Product',
+        productionRoute: row['Production Route']?.toLowerCase() || 'primary',
+        energySource: row['Energy Source']?.toLowerCase() || 'grid',
+        transportDistance: row['Transport Distance (km)'] || 0,
+        transportMode: row['Transport Mode']?.toLowerCase() || 'road',
+        recycledContent: row['Recycled Content (%)'] || 0,
+        companyName: row['Company Name'] || 'N/A',
+        geographicalScope: row['Geographical Scope'] || 'Not specified',
+        intendedAudience: row['Intended Audience'] || 'Engineering & Sustainability',
+      };
+      return buildLcaJson(input);
+    });
+    setLcaResults(results);
+    setUploadStatus('success');
+    if (onBatchCalculateResults) {
+      onBatchCalculateResults(results);
+    }
+  };
+
+  const downloadTemplate = (type) => {
+    const basicHeaders = ['Metal Type', 'Product Type', 'Production Route', 'Energy Source', 'Transport Distance (km)', 'Transport Mode', 'Recycled Content (%)'];
+    const advancedHeaders = [
+      'Metal Type', 'Product Type', 'Production Route', 'Energy Source', 'Transport Distance (km)', 'Transport Mode', 'Recycled Content (%)',
+      'Company Name', 'Geographical Scope', 'Intended Audience',
+      // Add more advanced fields as per lca.js buildLcaJson function
+    ];
+
+    let headers = [];
+    let filename = '';
+    if (type === 'basic') {
+      headers = basicHeaders;
+      filename = 'basic_lca_template.csv';
+    } else if (type === 'advanced') {
+      headers = advancedHeaders;
+      filename = 'advanced_lca_template.xlsx';
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet([{}], { header: headers });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'LCA Data');
+
+    XLSX.writeFile(workbook, filename);
   };
 
   return (
@@ -76,7 +150,7 @@ export function DataUpload() {
                     className="hidden"
                   />
                 </div>
-                <Button variant="outline" className="mt-4">
+                <Button variant="outline" className="mt-4" onClick={() => document.getElementById('file-upload').click()}>
                   <Upload className="w-4 h-4 mr-2" />
                   Select File
                 </Button>
@@ -94,12 +168,23 @@ export function DataUpload() {
               </div>
             )}
 
+            {/* Processing State */}
+            {uploadStatus === 'processing' && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Processing {fileName}...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
+              </div>
+            )}
+
             {/* Upload Success */}
             {uploadStatus === 'success' && (
               <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
                 <CheckCircle className="w-4 h-4 text-green-600" />
                 <AlertDescription className="text-green-700 dark:text-green-300">
-                  File "{fileName}" uploaded successfully! Processing 15 entries for LCA calculations.
+                  File "{fileName}" uploaded successfully! Processed {lcaResults.length} entries for LCA calculations.
                 </AlertDescription>
               </Alert>
             )}
@@ -110,6 +195,16 @@ export function DataUpload() {
                 <AlertCircle className="w-4 h-4 text-red-600" />
                 <AlertDescription className="text-red-700 dark:text-red-300">
                   Error uploading file. Please check the file format and try again.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Empty File Alert */}
+            {uploadStatus === 'empty_file' && (
+              <Alert className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950">
+                <AlertCircle className="w-4 h-4 text-yellow-600" />
+                <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+                  File "{fileName}" has no entries. Please upload a file with data.
                 </AlertDescription>
               </Alert>
             )}
@@ -132,7 +227,7 @@ export function DataUpload() {
               <p className="text-sm text-muted-foreground mb-4">
                 Standard template with essential parameters for LCA calculations
               </p>
-              <Button variant="outline" onClick={downloadTemplate}>
+              <Button variant="outline" onClick={() => downloadTemplate('basic')}>
                 <Download className="w-4 h-4 mr-2" />
                 Download CSV
               </Button>
@@ -143,7 +238,7 @@ export function DataUpload() {
               <p className="text-sm text-muted-foreground mb-4">
                 Comprehensive template with detailed process parameters
               </p>
-              <Button variant="outline" onClick={downloadTemplate}>
+              <Button variant="outline" onClick={() => downloadTemplate('advanced')}>
                 <Download className="w-4 h-4 mr-2" />
                 Download Excel
               </Button>
@@ -175,10 +270,12 @@ export function DataUpload() {
             <div>
               <h4 className="font-medium text-blue-700 dark:text-blue-300 mb-2">Optional Fields</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                <span className="p-2 bg-blue-50 dark:bg-blue-950 rounded">Transport Distance</span>
+                <span className="p-2 bg-blue-50 dark:bg-blue-950 rounded">Transport Distance (km)</span>
                 <span className="p-2 bg-blue-50 dark:bg-blue-950 rounded">Transport Mode</span>
-                <span className="p-2 bg-blue-50 dark:bg-blue-950 rounded">Material Grade</span>
-                <span className="p-2 bg-blue-50 dark:bg-blue-950 rounded">Recycled Content</span>
+                <span className="p-2 bg-blue-50 dark:bg-blue-950 rounded">Recycled Content (%)</span>
+                <span className="p-2 bg-blue-50 dark:bg-blue-950 rounded">Company Name</span>
+                <span className="p-2 bg-blue-50 dark:bg-blue-950 rounded">Geographical Scope</span>
+                <span className="p-2 bg-blue-50 dark:bg-blue-950 rounded">Intended Audience</span>
               </div>
             </div>
 
@@ -193,8 +290,8 @@ export function DataUpload() {
         </CardContent>
       </Card>
 
-      {/* Recent Uploads */}
-      {uploadStatus === 'success' && (
+      {/* Recent Uploads / Processing Results */}
+      {lcaResults.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Processing Results</CardTitle>
@@ -206,15 +303,19 @@ export function DataUpload() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">15</p>
+                  <p className="text-2xl font-bold text-green-600">{lcaResults.length}</p>
                   <p className="text-sm text-muted-foreground">Successfully Processed</p>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">5,240</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {(lcaResults.reduce((sum, result) => sum + result.impact_assessment_results.totals.gwp_kg_co2e, 0) / lcaResults.length).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </p>
                   <p className="text-sm text-muted-foreground">Avg. Carbon Footprint (kg CO₂-eq)</p>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                  <p className="text-2xl font-bold text-purple-600">73</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {(lcaResults.reduce((sum, result) => sum + result.impact_assessment_results.totals.mci_percent, 0) / lcaResults.length).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </p>
                   <p className="text-sm text-muted-foreground">Avg. Circularity Score</p>
                 </div>
               </div>
