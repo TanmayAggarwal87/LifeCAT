@@ -1,0 +1,64 @@
+{
+  "project_details": {
+    "product_name": "Recycled Aluminium Alloy Wheel",
+    "company_name": "Circular Auto Parts Inc.",
+    "report_id": "LCA-2025-09-15-001",
+    "generation_date": "2025-09-15"
+  },
+  "scope_and_boundaries": {
+    "functional_unit": "1 unit of aluminium alloy wheel (10 kg) at the factory gate",
+    "system_boundaries": "Cradle-to-Gate",
+    "geographical_scope": "Production facility in Delhi, India",
+    "time_horizon": "2024",
+    "intended_audience": "Internal R&D and Sustainability Teams"
+  },
+  "life_cycle_inventory": {
+    "raw_materials": {
+      "description": "Primary inputs for the alloy based on a 10kg wheel.",
+      "scrap_aluminium_input_percent": 95,
+      "primary_aluminium_ingot_percent": 3,
+      "alloying_elements_percent": 2
+    },
+    "energy_inputs": {
+      "description": "Energy consumed during manufacturing processes.",
+      "grid_electricity_kwh": 150,
+      "natural_gas_mj": 200,
+      "renewable_share_of_electricity_percent": 20
+    },
+    "transportation": {
+      "description": "Transportation of raw materials to the factory.",
+      "scrap_collection_truck_km": 5000,
+      "ingot_shipping_sea_km": 1200
+    },
+    "manufacturing_processes": [
+      "Scrap Sorting and Shredding",
+      "De-coating and Melting in Furnace",
+      "Alloying and Casting",
+      "Heat Treatment and CNC Finishing"
+    ],
+    "end_of_life_assumptions": {
+      "description": "Assumed scenario for the product after its use phase (outside cradle-to-gate scope but relevant for circularity).",
+      "collection_for_recycling_rate_percent": 90,
+      "landfill_rate_percent": 10
+    }
+  },
+  "impact_assessment_results": {
+    "by_stage": {
+      "raw_materials": { "gwp_kg_co2e": 5.2, "ced_mj": 80 },
+      "manufacturing": { "gwp_kg_co2e": 12.5, "ced_mj": 350 },
+      "transportation": { "gwp_kg_co2e": 2.3, "ced_mj": 45 }
+    },
+    "totals": {
+      "gwp_kg_co2e": 20.0,
+      "ced_mj": 475,
+      "mci_percent": 92.5,
+      "water_consumption_m3": 0.8,
+      "adp_kg_sbeq": 0.00015,
+      "odp_kg_cfc11eq": 0.00000012,
+      "ap_kg_so2eq": 0.04,
+      "ep_kg_po4eq": 0.009,
+      "human_toxicity_kg_dcb": 0.08,
+      "eco_toxicity_kg_dcb": 0.15
+    }
+  }
+}

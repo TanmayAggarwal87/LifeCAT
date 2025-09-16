@@ -1,24 +1,36 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card.js';
-import { Button } from './ui/button.js';
-import { Input } from './ui/input.js';
-import { Label } from './ui/label.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.js';
-import { Textarea } from './ui/textarea.js';
-import { Calculator } from 'lucide-react';
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Textarea } from "./ui/textarea";
+import { Calculator } from "lucide-react";
 
 export function InputForm({ onCalculate }) {
   const [formData, setFormData] = React.useState({
-    metal: '',
-    productType: '',
-    productionRoute: '',
-    energySource: '',
-    transportDistance: '',
-    transportMode: '',
-    endOfLife: '',
-    materialGrade: '',
-    alloyType: '',
-    recycledContent: ''
+    metal: "",
+    productType: "",
+    productionRoute: "",
+    energySource: "",
+    transportDistance: "",
+    transportMode: "",
+    endOfLife: "",
+    materialGrade: "",
+    alloyType: "",
+    recycledContent: "",
   });
 
   const handleSubmit = (e) => {
@@ -27,7 +39,7 @@ export function InputForm({ onCalculate }) {
   };
 
   const updateField = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -47,7 +59,10 @@ export function InputForm({ onCalculate }) {
             {/* Metal Selection */}
             <div className="space-y-2">
               <Label htmlFor="metal">Metal Type *</Label>
-              <Select value={formData.metal} onValueChange={(value) => updateField('metal', value)}>
+              <Select
+                value={formData.metal}
+                onValueChange={(value) => updateField("metal", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select metal" />
                 </SelectTrigger>
@@ -66,7 +81,10 @@ export function InputForm({ onCalculate }) {
             {/* Product Type */}
             <div className="space-y-2">
               <Label htmlFor="productType">Product/Application Type *</Label>
-              <Select value={formData.productType} onValueChange={(value) => updateField('productType', value)}>
+              <Select
+                value={formData.productType}
+                onValueChange={(value) => updateField("productType", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select application" />
                 </SelectTrigger>
@@ -85,14 +103,21 @@ export function InputForm({ onCalculate }) {
             {/* Production Route */}
             <div className="space-y-2">
               <Label htmlFor="productionRoute">Production Route *</Label>
-              <Select value={formData.productionRoute} onValueChange={(value) => updateField('productionRoute', value)}>
+              <Select
+                value={formData.productionRoute}
+                onValueChange={(value) => updateField("productionRoute", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select route" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="primary">Raw/Primary Production</SelectItem>
+                  <SelectItem value="primary">
+                    Raw/Primary Production
+                  </SelectItem>
                   <SelectItem value="recycled">Recycled Production</SelectItem>
-                  <SelectItem value="mixed">Mixed (Primary + Recycled)</SelectItem>
+                  <SelectItem value="mixed">
+                    Mixed (Primary + Recycled)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -100,7 +125,10 @@ export function InputForm({ onCalculate }) {
             {/* Energy Source */}
             <div className="space-y-2">
               <Label htmlFor="energySource">Energy Source *</Label>
-              <Select value={formData.energySource} onValueChange={(value) => updateField('energySource', value)}>
+              <Select
+                value={formData.energySource}
+                onValueChange={(value) => updateField("energySource", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select energy source" />
                 </SelectTrigger>
@@ -121,14 +149,19 @@ export function InputForm({ onCalculate }) {
                 type="number"
                 placeholder="e.g., 500"
                 value={formData.transportDistance}
-                onChange={(e) => updateField('transportDistance', e.target.value)}
+                onChange={(e) =>
+                  updateField("transportDistance", e.target.value)
+                }
               />
             </div>
 
             {/* Transport Mode */}
             <div className="space-y-2">
               <Label htmlFor="transportMode">Transport Mode</Label>
-              <Select value={formData.transportMode} onValueChange={(value) => updateField('transportMode', value)}>
+              <Select
+                value={formData.transportMode}
+                onValueChange={(value) => updateField("transportMode", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select transport" />
                 </SelectTrigger>
@@ -145,7 +178,10 @@ export function InputForm({ onCalculate }) {
             {/* End of Life */}
             <div className="space-y-2">
               <Label htmlFor="endOfLife">End-of-Life Option *</Label>
-              <Select value={formData.endOfLife} onValueChange={(value) => updateField('endOfLife', value)}>
+              <Select
+                value={formData.endOfLife}
+                onValueChange={(value) => updateField("endOfLife", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select end-of-life" />
                 </SelectTrigger>
@@ -153,7 +189,9 @@ export function InputForm({ onCalculate }) {
                   <SelectItem value="recycling">Recycling</SelectItem>
                   <SelectItem value="reuse">Reuse</SelectItem>
                   <SelectItem value="landfill">Landfill</SelectItem>
-                  <SelectItem value="energy-recovery">Energy Recovery</SelectItem>
+                  <SelectItem value="energy-recovery">
+                    Energy Recovery
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -168,7 +206,7 @@ export function InputForm({ onCalculate }) {
                 min="0"
                 max="100"
                 value={formData.recycledContent}
-                onChange={(e) => updateField('recycledContent', e.target.value)}
+                onChange={(e) => updateField("recycledContent", e.target.value)}
               />
             </div>
           </div>
@@ -183,7 +221,7 @@ export function InputForm({ onCalculate }) {
                   id="materialGrade"
                   placeholder="e.g., 6061-T6"
                   value={formData.materialGrade}
-                  onChange={(e) => updateField('materialGrade', e.target.value)}
+                  onChange={(e) => updateField("materialGrade", e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -192,17 +230,23 @@ export function InputForm({ onCalculate }) {
                   id="alloyType"
                   placeholder="e.g., Al-Mg-Si"
                   value={formData.alloyType}
-                  onChange={(e) => updateField('alloyType', e.target.value)}
+                  onChange={(e) => updateField("alloyType", e.target.value)}
                 />
               </div>
             </div>
           </div>
 
           <div className="flex justify-end pt-4">
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="bg-green-600 hover:bg-green-700 text-white px-8"
-              disabled={!formData.metal || !formData.productType || !formData.productionRoute || !formData.energySource || !formData.endOfLife}
+              disabled={
+                !formData.metal ||
+                !formData.productType ||
+                !formData.productionRoute ||
+                !formData.energySource ||
+                !formData.endOfLife
+              }
             >
               Calculate LCA Impact
             </Button>
