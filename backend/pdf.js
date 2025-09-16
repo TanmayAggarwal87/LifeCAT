@@ -1,12 +1,14 @@
 import "dotenv/config";
 import express from "express";
+import cors from "cors";
 import fs from "fs";
 import path from "path";
 import markdownpdf from "markdown-pdf";
 import OpenAI from "openai";
 
 const app = express();
-app.use(express.json());
+app.use(cors({ origin: true }));
+app.use(express.json({ limit: "2mb" }));
 
 // --- 1) Initialize Groq
 const client = new OpenAI({
