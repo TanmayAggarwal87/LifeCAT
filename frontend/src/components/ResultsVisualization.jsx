@@ -24,9 +24,11 @@ import { Leaf, Zap, Droplets, Recycle, Clock, TrendingUp } from "lucide-react";
 import { Button } from "./ui/button";
 import { buildLcaJson } from "../utils/lca";
 
-export function ResultsVisualization({ inputData }) {
+export function ResultsVisualization({ inputData, batchData }) {
   // Mock calculation based on input data
   const calculateResults = () => {
+    if (!inputData) return { carbon: 0, energy: 0, water: 0 };
+
     const baseImpacts = {
       aluminium: { carbon: 12000, energy: 45000, water: 1200 },
       copper: { carbon: 5500, energy: 28000, water: 800 },
@@ -69,6 +71,25 @@ export function ResultsVisualization({ inputData }) {
   };
 
   const results = calculateResults();
+
+  // Calculate averages for batch data
+  const calculateBatchAverages = () => {
+    if (!batchData || batchData.length === 0) return null;
+
+    const totalCarbon = batchData.reduce((sum, item) => sum + item.impact_assessment_results.totals.gwp_kg_co2e, 0);
+    const totalEnergy = batchData.reduce((sum, item) => sum + item.impact_assessment_results.totals.ced_mj, 0);
+    const totalWater = batchData.reduce((sum, item) => sum + item.impact_assessment_results.totals.water_consumption_m3, 0);
+    const totalCircularity = batchData.reduce((sum, item) => sum + item.impact_assessment_results.totals.mci_percent, 0);
+
+    return {
+      avgCarbon: totalCarbon / batchData.length,
+      avgEnergy: totalEnergy / batchData.length,
+      avgWater: totalWater / batchData.length,
+      avgCircularity: totalCircularity / batchData.length,
+    };
+  };
+
+  const batchAverages = batchData && batchData.length > 1 ? calculateBatchAverages() : null;
 
   const handleGeneratePdf = async () => {
     try {
@@ -149,6 +170,47 @@ export function ResultsVisualization({ inputData }) {
 
   return (
     <div className="w-full max-w-7xl space-y-6">
+      {batchAverages && (
+        <Card className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
+          <CardHeader>
+            <CardTitle className="text-purple-700 dark:text-purple-300">Batch Processing Summary</CardTitle>
+            <CardDescription>
+              Summary of {batchData.length} LCA calculations from your uploaded file.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="p-4 bg-purple-50 dark:bg-purple-900 rounded-lg">
+                <p className="text-sm text-muted-foreground">Avg. Carbon Footprint</p>
+                <p className="text-2xl font-semibold text-purple-600">
+                  {batchAverages.avgCarbon.toLocaleString(undefined, { maximumFractionDigits: 0 })} kg CO₂-eq
+                </p>
+              </div>
+              <div className="p-4 bg-pink-50 dark:bg-pink-900 rounded-lg">
+                <p className="text-sm text-muted-foreground">Avg. Energy Use</p>
+                <p className="text-2xl font-semibold text-pink-600">
+                  {batchAverages.avgEnergy.toLocaleString(undefined, { maximumFractionDigits: 0 })} MJ
+                </p>
+              </div>
+              <div className="p-4 bg-indigo-50 dark:bg-indigo-900 rounded-lg">
+                <p className="text-sm text-muted-foreground">Avg. Water Use</p>
+                <p className="text-2xl font-semibold text-indigo-600">
+                  {batchAverages.avgWater.toLocaleString(undefined, { maximumFractionDigits: 2 })} m³
+                </p>
+              </div>
+              <div className="p-4 bg-green-50 dark:bg-green-900 rounded-lg">
+                <p className="text-sm text-muted-foreground">Avg. Circularity Score</p>
+                <p className="text-2xl font-semibold text-green-600">
+                  {batchAverages.avgCircularity.toLocaleString(undefined, { maximumFractionDigits: 0 })}/100
+                </p>
+              </div>
+            </div>
+            {/* Optionally, add a button to view individual results */}
+            {/* <Button className="mt-4">View Individual Results</Button> */}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Environmental Impact Report */}
       <Card>
         <CardHeader className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950">
@@ -156,7 +218,7 @@ export function ResultsVisualization({ inputData }) {
             Environmental Impact Report
           </CardTitle>
           <CardDescription>
-            Impact assessment for {inputData.metal} in {inputData.productType}{" "}
+            Impact assessment for {inputData?.metal} in {inputData?.productType}{" "}
             application
           </CardDescription>
         </CardHeader>
@@ -314,7 +376,7 @@ export function ResultsVisualization({ inputData }) {
           <CardHeader>
             <CardTitle>End-of-Life Pathways</CardTitle>
             <CardDescription>
-              Typical distribution for {inputData.metal}
+              Typical distribution for {inputData?.metal}
             </CardDescription>
           </CardHeader>
           <CardContent>

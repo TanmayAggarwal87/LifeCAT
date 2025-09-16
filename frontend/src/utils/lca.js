@@ -35,13 +35,27 @@ export function buildLcaJson(input) {
     titanium: { baseWaterLPerTonne: 1800 },
   };
 
+  // Standardize input keys
+  const getInputValue = (keys, defaultValue) => {
+    for (const key of keys) {
+      if (input[key] !== undefined) {
+        return input[key];
+      }
+    }
+    return defaultValue;
+  };
+
   // Inputs
-  const metal = input.metal || "steel";
-  const productionRoute = input.productionRoute || "primary"; // primary | recycled | mixed
-  const energySource = input.energySource || "grid"; // grid | renewable | fossil | mixed
-  const distanceKm = Number(input.transportDistance || 0);
-  const transportMode = input.transportMode || "road";
-  const recycledContentPercent = Number(input.recycledContent || 0);
+  const metal = getInputValue(["metal", "Metal Type"], "steel").toLowerCase();
+  const productType = getInputValue(["productType", "Product Type"], "Product");
+  const productionRoute = getInputValue(["productionRoute", "Production Route"], "primary").toLowerCase();
+  const energySource = getInputValue(["energySource", "Energy Source"], "grid").toLowerCase();
+  const distanceKm = Number(getInputValue(["transportDistance", "Transport Distance (km)"], 0));
+  const transportMode = getInputValue(["transportMode", "Transport Mode"], "road").toLowerCase();
+  const recycledContentPercent = Number(getInputValue(["recycledContent", "Recycled Content (%)"], 0));
+  const companyName = getInputValue(["companyName", "Company Name"], "N/A");
+  const geographicalScope = getInputValue(["geographicalScope", "Geographical Scope"], "Not specified");
+  const intendedAudience = getInputValue(["intendedAudience", "Intended Audience"], "Engineering & Sustainability");
 
   // Scale factors based on route and energy
   const productionModifier =
@@ -126,7 +140,7 @@ export function buildLcaJson(input) {
   // MCI simplified: 1 - (V / (V + R)) * (1 - E)
   const V = 100 - recyclablePercent; // proxy for virgin input share
   const R = recyclablePercent; // proxy for recycled input share
-  const E = Math.min(1, Math.max(0, recyclablePercent / 100)); // proxy for end-of-life recycling rate
+  const E = Math.min(1, Math.max(0, recycledContentPercent / 100)); // proxy for end-of-life recycling rate
   const mci = round2(1 - (V / (V + R)) * (1 - E)) * 100;
 
   // Contribution by stage (rough partitioning)
@@ -147,8 +161,8 @@ export function buildLcaJson(input) {
 
   return {
     project_details: {
-      product_name: `${capitalize(metal)} ${input.productType || "Product"}`,
-      company_name: input.companyName || "N/A",
+      product_name: `${capitalize(metal)} ${productType}`,
+      company_name: companyName,
       report_id: `LCA-${dateStr.replace(/-/g, "")}-${Math.floor(
         Math.random() * 1000
       )}`,
@@ -157,10 +171,9 @@ export function buildLcaJson(input) {
     scope_and_boundaries: {
       functional_unit: `1 tonne of ${metal} at the factory gate`,
       system_boundaries: "Cradle-to-Gate",
-      geographical_scope: input.geographicalScope || "Not specified",
+      geographical_scope: geographicalScope,
       time_horizon: String(new Date().getFullYear()),
-      intended_audience:
-        input.intendedAudience || "Engineering & Sustainability",
+      intended_audience: intendedAudience,
     },
     life_cycle_inventory: {
       raw_materials: {
