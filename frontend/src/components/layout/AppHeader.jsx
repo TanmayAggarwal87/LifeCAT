@@ -1,11 +1,8 @@
-import React from 'react';
-import { Button } from '../ui/button';
-import { Leaf, Download } from 'lucide-react';
+import React from "react";
+import { Button } from "../ui/button";
+import { Leaf, Download } from "lucide-react";
 
-export const AppHeader = ({ 
-  showResults, 
-  onNewAssessment 
-}) => {
+export const AppHeader = ({ showResults, onNewAssessment }) => {
   return (
     <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -16,14 +13,14 @@ export const AppHeader = ({
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                MetalCycle LCA
+                LifeCAT
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                Life Cycle Assessment for Metals with Circularity Focus
+                Life Cycle Assessment Tool for Metals with Circularity Focus
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             {showResults && (
               <Button variant="outline" onClick={onNewAssessment}>
