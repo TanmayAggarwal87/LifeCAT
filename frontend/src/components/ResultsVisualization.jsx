@@ -25,6 +25,7 @@ import { Button } from "./ui/button";
 import { buildLcaJson } from "../utils/lca";
 
 export function ResultsVisualization({ inputData, batchData }) {
+  const [isGenerating, setIsGenerating] = React.useState(false);
   // Mock calculation based on input data
   const calculateResults = () => {
     if (!inputData) return { carbon: 0, energy: 0, water: 0 };
@@ -72,14 +73,38 @@ export function ResultsVisualization({ inputData, batchData }) {
 
   const results = calculateResults();
 
+  // Derive LCA scenarios for comparison (Conventional vs Circular)
+  const lcaCircular = inputData ? buildLcaJson(inputData) : null;
+  const lcaConventional = inputData
+    ? buildLcaJson({
+        ...inputData,
+        productionRoute: "primary",
+        energySource: "fossil",
+        recycledContent: 0,
+      })
+    : null;
+
   // Calculate averages for batch data
   const calculateBatchAverages = () => {
     if (!batchData || batchData.length === 0) return null;
 
-    const totalCarbon = batchData.reduce((sum, item) => sum + item.impact_assessment_results.totals.gwp_kg_co2e, 0);
-    const totalEnergy = batchData.reduce((sum, item) => sum + item.impact_assessment_results.totals.ced_mj, 0);
-    const totalWater = batchData.reduce((sum, item) => sum + item.impact_assessment_results.totals.water_consumption_m3, 0);
-    const totalCircularity = batchData.reduce((sum, item) => sum + item.impact_assessment_results.totals.mci_percent, 0);
+    const totalCarbon = batchData.reduce(
+      (sum, item) => sum + item.impact_assessment_results.totals.gwp_kg_co2e,
+      0
+    );
+    const totalEnergy = batchData.reduce(
+      (sum, item) => sum + item.impact_assessment_results.totals.ced_mj,
+      0
+    );
+    const totalWater = batchData.reduce(
+      (sum, item) =>
+        sum + item.impact_assessment_results.totals.water_consumption_m3,
+      0
+    );
+    const totalCircularity = batchData.reduce(
+      (sum, item) => sum + item.impact_assessment_results.totals.mci_percent,
+      0
+    );
 
     return {
       avgCarbon: totalCarbon / batchData.length,
@@ -89,10 +114,12 @@ export function ResultsVisualization({ inputData, batchData }) {
     };
   };
 
-  const batchAverages = batchData && batchData.length > 1 ? calculateBatchAverages() : null;
+  const batchAverages =
+    batchData && batchData.length > 1 ? calculateBatchAverages() : null;
 
   const handleGeneratePdf = async () => {
     try {
+      setIsGenerating(true);
       const payload = buildLcaJson(inputData);
       const res = await fetch("http://localhost:3001/generate-lca-pdf", {
         method: "POST",
@@ -114,34 +141,61 @@ export function ResultsVisualization({ inputData, batchData }) {
     } catch (err) {
       // eslint-disable-next-line no-alert
       alert(err.message || "Error generating PDF");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  // Comparison data
-  const comparisonData = [
-    {
-      name: "Conventional Route",
-      "Carbon Footprint":
-        results.carbon / (inputData.productionRoute === "recycled" ? 0.4 : 1),
-      "Energy Use":
-        results.energy / (inputData.productionRoute === "recycled" ? 0.4 : 1),
-      "Water Use":
-        results.water / (inputData.productionRoute === "recycled" ? 0.4 : 1),
-    },
-    {
-      name: "Circular Route",
-      "Carbon Footprint": results.carbon,
-      "Energy Use": results.energy,
-      "Water Use": results.water,
-    },
-  ];
+  // Comparison data from LCA totals (GWP, CED, Water)
+  const comparisonData =
+    lcaCircular && lcaConventional
+      ? [
+          {
+            name: "Conventional Route",
+            "Carbon Footprint":
+              lcaConventional.impact_assessment_results.totals.gwp_kg_co2e,
+            "Energy Use":
+              lcaConventional.impact_assessment_results.totals.ced_mj,
+            // Convert m3 -> liters for more intuitive scale in charts
+            "Water Use":
+              (lcaConventional.impact_assessment_results.totals
+                .water_consumption_m3 || 0) * 1000,
+          },
+          {
+            name: "Circular Route",
+            "Carbon Footprint":
+              lcaCircular.impact_assessment_results.totals.gwp_kg_co2e,
+            "Energy Use": lcaCircular.impact_assessment_results.totals.ced_mj,
+            "Water Use":
+              (lcaCircular.impact_assessment_results.totals
+                .water_consumption_m3 || 0) * 1000,
+          },
+        ]
+      : [];
 
-  // End-of-life data for pie chart
+  // End-of-life pie chart derived from LCA and user endOfLife
+  const recyclingRate = lcaCircular
+    ? Math.round(
+        lcaCircular.life_cycle_inventory.end_of_life_assumptions
+          .collection_for_recycling_rate_percent || 0
+      )
+    : 0;
+  const baseReuse =
+    (inputData?.endOfLife || "").toLowerCase() === "reuse"
+      ? 20
+      : (inputData?.endOfLife || "").toLowerCase() === "recycling"
+      ? 5
+      : 10;
+  const energyRecoveryBase = 10;
+  let landfillCalc = 100 - recyclingRate - baseReuse - energyRecoveryBase;
+  if (landfillCalc < 0) {
+    landfillCalc = 0;
+  }
   const eolData = [
-    { name: "Recycling", value: 70, color: "#22c55e" },
-    { name: "Reuse", value: 15, color: "#3b82f6" },
-    { name: "Energy Recovery", value: 10, color: "#f59e0b" },
-    { name: "Landfill", value: 5, color: "#ef4444" },
+    { name: "Recycling", value: recyclingRate, color: "#22c55e" },
+    { name: "Reuse", value: baseReuse, color: "#3b82f6" },
+    { name: "Energy Recovery", value: energyRecoveryBase, color: "#f59e0b" },
+    { name: "Landfill", value: landfillCalc, color: "#ef4444" },
   ];
 
   // Circularity metrics
@@ -173,35 +227,54 @@ export function ResultsVisualization({ inputData, batchData }) {
       {batchAverages && (
         <Card className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
           <CardHeader>
-            <CardTitle className="text-purple-700 dark:text-purple-300">Batch Processing Summary</CardTitle>
+            <CardTitle className="text-purple-700 dark:text-purple-300">
+              Batch Processing Summary
+            </CardTitle>
             <CardDescription>
-              Summary of {batchData.length} LCA calculations from your uploaded file.
+              Summary of {batchData.length} LCA calculations from your uploaded
+              file.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="p-4 bg-purple-50 dark:bg-purple-900 rounded-lg">
-                <p className="text-sm text-muted-foreground">Avg. Carbon Footprint</p>
+                <p className="text-sm text-muted-foreground">
+                  Avg. Carbon Footprint
+                </p>
                 <p className="text-2xl font-semibold text-purple-600">
-                  {batchAverages.avgCarbon.toLocaleString(undefined, { maximumFractionDigits: 0 })} kg CO₂-eq
+                  {batchAverages.avgCarbon.toLocaleString(undefined, {
+                    maximumFractionDigits: 0,
+                  })}{" "}
+                  kg CO₂-eq
                 </p>
               </div>
               <div className="p-4 bg-pink-50 dark:bg-pink-900 rounded-lg">
                 <p className="text-sm text-muted-foreground">Avg. Energy Use</p>
                 <p className="text-2xl font-semibold text-pink-600">
-                  {batchAverages.avgEnergy.toLocaleString(undefined, { maximumFractionDigits: 0 })} MJ
+                  {batchAverages.avgEnergy.toLocaleString(undefined, {
+                    maximumFractionDigits: 0,
+                  })}{" "}
+                  MJ
                 </p>
               </div>
               <div className="p-4 bg-indigo-50 dark:bg-indigo-900 rounded-lg">
                 <p className="text-sm text-muted-foreground">Avg. Water Use</p>
                 <p className="text-2xl font-semibold text-indigo-600">
-                  {batchAverages.avgWater.toLocaleString(undefined, { maximumFractionDigits: 2 })} m³
+                  {batchAverages.avgWater.toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  m³
                 </p>
               </div>
               <div className="p-4 bg-green-50 dark:bg-green-900 rounded-lg">
-                <p className="text-sm text-muted-foreground">Avg. Circularity Score</p>
+                <p className="text-sm text-muted-foreground">
+                  Avg. Circularity Score
+                </p>
                 <p className="text-2xl font-semibold text-green-600">
-                  {batchAverages.avgCircularity.toLocaleString(undefined, { maximumFractionDigits: 0 })}/100
+                  {batchAverages.avgCircularity.toLocaleString(undefined, {
+                    maximumFractionDigits: 0,
+                  })}
+                  /100
                 </p>
               </div>
             </div>
@@ -223,13 +296,23 @@ export function ResultsVisualization({ inputData, batchData }) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="flex justify-end mb-4">
+          <div className="flex items-center justify-end gap-3 mb-4">
             <Button
               onClick={handleGeneratePdf}
               className="bg-green-600 hover:bg-green-700 text-white"
+              disabled={isGenerating}
             >
-              Generate PDF
+              {isGenerating ? "Generating…" : "Generate PDF"}
             </Button>
+            {isGenerating && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span
+                  className="inline-block h-4 w-4 rounded-full border-2 border-muted-foreground/30 border-t-green-600 animate-spin"
+                  aria-hidden
+                />
+                <span>Preparing report…</span>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex items-center space-x-3 p-4 bg-red-50 dark:bg-red-950/20 rounded-lg">
